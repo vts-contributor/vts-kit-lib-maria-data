@@ -7,6 +7,7 @@ import java.util.List;
 import java.util.Map;
 
 public class CommonUtils {
+    private CommonUtils(){}
 
     public static <T> List<T> convertToEntity(List<Tuple> input, Class<T> resultClass) {
         List<T> arrayList = new ArrayList<>();

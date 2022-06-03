@@ -67,7 +67,7 @@ public class CommonMariaRepository {
                 nativeQuery.setParameter(param.getKey(), param.getValue());
             }
         }
-        List resultQr = nativeQuery.getResultList();
+        List<Object> resultQr = nativeQuery.getResultList();
         entityManager.close();
         if(resultQr == null || resultQr.isEmpty()){
             return 0;
@@ -86,7 +86,7 @@ public class CommonMariaRepository {
         nativeQuery.setFirstResult(startPage).setMaxResults(startPage + pageSize);
         long total = executeCountSelectQuery(query, params);
         List<T> resultList = CommonUtils.convertToEntity(nativeQuery.getResultList(), resultClass);
-        Page<T> result = new PageImpl<T>(resultList, PageRequest.of(startPage, pageSize), total);
+        Page<T> result = new PageImpl<>(resultList, PageRequest.of(startPage, pageSize), total);
         entityManager.close();
         return result;
     }
