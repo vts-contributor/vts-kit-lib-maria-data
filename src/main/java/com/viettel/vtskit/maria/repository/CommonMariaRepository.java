@@ -5,8 +5,6 @@
 package com.viettel.vtskit.maria.repository;
 
 import com.viettel.vtskit.maria.utils.CommonUtils;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
@@ -17,8 +15,8 @@ import javax.persistence.EntityManager;
 import javax.persistence.PersistenceContext;
 import javax.persistence.Query;
 import javax.persistence.Tuple;
-import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 @Repository
 @Transactional
@@ -26,8 +24,6 @@ public class CommonMariaRepository {
 
     @PersistenceContext
     private EntityManager entityManager;
-
-    private static final Logger LOGGER = LoggerFactory.getLogger(CommonMariaRepository.class);
 
     private Query createNativeSelectQuery(String query){
         return entityManager.createNativeQuery(query, Tuple.class);
@@ -47,11 +43,11 @@ public class CommonMariaRepository {
         return strResult;
     }
 
-    public <T> List<T> executeSelectQuery(String query, HashMap<String, Object> params, Class<T> resultClass){
+    public <T> List<T> executeSelectQuery(String query, Map<String, Object> params, Class<T> resultClass){
         Query nativeQuery = createNativeSelectQuery(query);
         if(params != null && !params.isEmpty()){
-            for(String paramKey : params.keySet()){
-                nativeQuery.setParameter(paramKey, params.get(paramKey));
+            for(Map.Entry<String, Object> param : params.entrySet()){
+                nativeQuery.setParameter(param.getKey(), param.getValue());
             }
         }
         List<T> resultList = CommonUtils.convertToEntity(nativeQuery.getResultList(), resultClass);
@@ -59,7 +55,7 @@ public class CommonMariaRepository {
         return resultList;
     }
 
-    public long executeCountSelectQuery(String query, HashMap<String, Object> params){
+    public long executeCountSelectQuery(String query, Map<String, Object> params){
         StringBuilder strBuild = new StringBuilder();
         String strSql = removeOrderBy(query);
         strBuild.append("Select count(1) as count From (");
@@ -67,8 +63,8 @@ public class CommonMariaRepository {
         strBuild.append(") tbcount");
         Query nativeQuery = createNativeQuery(strBuild.toString());
         if(params != null && !params.isEmpty()){
-            for(String paramKey : params.keySet()){
-                nativeQuery.setParameter(paramKey, params.get(paramKey));
+            for(Map.Entry<String, Object> param : params.entrySet()){
+                nativeQuery.setParameter(param.getKey(), param.getValue());
             }
         }
         List resultQr = nativeQuery.getResultList();
@@ -79,12 +75,12 @@ public class CommonMariaRepository {
         return Long.parseLong(String.valueOf(resultQr.get(0)));
     }
 
-    public <T> Page<T> executeSelectPagingQuery(String query, HashMap<String, Object> params, int startPage,
+    public <T> Page<T> executeSelectPagingQuery(String query, Map<String, Object> params, int startPage,
                                                 int pageSize, Class<T> resultClass){
         Query nativeQuery = createNativeSelectQuery(query);
         if(params != null && !params.isEmpty()){
-            for(String paramKey : params.keySet()){
-                nativeQuery.setParameter(paramKey, params.get(paramKey));
+            for(Map.Entry<String, Object> param : params.entrySet()){
+                nativeQuery.setParameter(param.getKey(), param.getValue());
             }
         }
         nativeQuery.setFirstResult(startPage).setMaxResults(startPage + pageSize);
@@ -95,11 +91,11 @@ public class CommonMariaRepository {
         return result;
     }
 
-    public int executeUpdateQuery(String query, HashMap<String, Object> params){
+    public int executeUpdateQuery(String query, Map<String, Object> params){
         Query nativeQuery = createNativeQuery(query);
         if(params != null && !params.isEmpty()){
-            for(String paramKey : params.keySet()){
-                nativeQuery.setParameter(paramKey, params.get(paramKey));
+            for(Map.Entry<String, Object> param : params.entrySet()){
+                nativeQuery.setParameter(param.getKey(), param.getValue());
             }
         }
         int resultUpdate = nativeQuery.executeUpdate();

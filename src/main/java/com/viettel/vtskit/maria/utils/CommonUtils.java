@@ -1,24 +1,12 @@
 package com.viettel.vtskit.maria.utils;
 
-import org.springframework.beans.factory.config.BeanDefinition;
-import org.springframework.beans.factory.support.BeanDefinitionRegistry;
-
 import javax.persistence.Tuple;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
 public class CommonUtils {
-    public static final BeanDefinition getBeanDefineByClass(BeanDefinitionRegistry registry, Class<?> clazz){
-        if(registry.getBeanDefinitionNames() == null){
-            return null;
-        }
-        String beanName = Arrays.asList(registry.getBeanDefinitionNames())
-                .stream().filter(item->item.contains(clazz.getName()))
-                .findFirst().orElse(null);
-        if(StringUtils.isNullOrEmpty(beanName)){
-            return null;
-        }
-        return registry.getBeanDefinition(beanName);
-    }
 
     public static <T> List<T> convertToEntity(List<Tuple> input, Class<T> resultClass) {
         List<T> arrayList = new ArrayList<>();
