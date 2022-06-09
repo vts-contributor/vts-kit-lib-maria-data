@@ -4,7 +4,7 @@ import com.google.gson.Gson;
 
 public class StringUtils {
     private StringUtils(){}
-    
+
     private static final Gson GSON = new Gson();
 
     public static boolean isNullOrEmpty(String str){

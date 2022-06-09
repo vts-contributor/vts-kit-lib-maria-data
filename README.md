@@ -1,24 +1,11 @@
-Logging Library for Spring Boot
+MariaDB Library for Spring Boot
 -------
-This library provides utilities that make it easy to add logging into spring boot project
+This library provides utilities that make it easy to integrate MariaDB into spring boot project
 
-<b>Feature List</b>
-* [Application Logging](#Application-Logging)
-* [Kpi Logging](#Kpi-Logging)
-
-<b>Output type supported</b>
-* Console (Default)
-* File
-* MariaDB (Use for KPI log)
-
-<b>The built-in configuration</b>
-* Pattern:
-    * Application Log Message Pattern: `%d{yyyy-MM-dd HH:mm:ss} [%thread] %-5p %c{1}:%X{line} - %m%n`
-    * KPI Log Message Pattern: `ApplicationCode|ServiceCode|SessionId|IpPortParentNode|IpPortCurrentNode|RequestContent|ResponseContent|StartTime|EndTime|Duration|ErrorCode|ErrorDescription|TransactionStatus|ActionName|Username|Account`
-    * Archived File Name Pattern: `archived-*.zip`
-* File Rolling Policy:
-    * Max History: `3`
-    * Max File Size: `10MB`
+<b>Features</b>
+* Manage database schema change with [Liquibase](#liquibase)
+* Access data with [Spring JPA](#spring-jpa)
+* Easy to execute [native query](#native-query)
 
 Quick start
 -------
@@ -26,142 +13,230 @@ Quick start
 ```xml
 <dependency>
     <groupId>com.atviettelsolutions</groupId>
-    <artifactId>vts-kit-ms-logs-handler</artifactId>
+    <artifactId>vts-kit-ms-maria-data</artifactId>
     <version>1.0.0</version>
 </dependency>
-```
-
-* Add line `<include resource="vtskit-default-logback.xml"/>` to your `logback.xml` file. Example:
-```xml
-<?xml version="1.0" encoding="UTF-8"?>
-<configuration>
-    <include resource="vtskit-default-logback.xml"/>
-</configuration>
 ```
 
 * Then, add the following properties to your `application-*.yml` file.
 ```yaml
 vtskit:
-  logs:
-    level: INFO # Optional. Default is INFO
-    kpi-logs:
-      application-code: DEMO-APPLICATION # Default ApplicationCode value
-      service-code: ${spring.application.name} # Default ServiceCode value
+  mariadb:
+    datasource:
+      url: jdbc:mariadb://localhost:3306/your-database
+      username: your-username
+      password: your-password
 ```
 
 Usage
 -------
-### Application Logging
-By default, application log will be logged to the console log.
+### Liquibase
+All change logs files will be saved in `resources/liquibase-changelog` folder.
 
-Example code to write application log:
+Now let's take a look at a simple changeLog file.\
+Create `changelog-1.0.xml` in `liquibase-changelog` folder. This create Book table and add some example data:
+```xml
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xmlns:pro="http://www.liquibase.org/xml/ns/pro"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+      http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.1.xsd
+      http://www.liquibase.org/xml/ns/pro
+      http://www.liquibase.org/xml/ns/pro/liquibase-pro-4.1.xsd">
+    <changeSet author="liquibase-bot" id="1">
+        <!-- CREATE BOOK TABLE -->
+        <createTable tableName="book">
+            <column name="id" type="VARCHAR(255)">
+                <constraints nullable="false" primaryKey="true" unique="true"/>
+            </column>
+            <column name="name" type="VARCHAR(255)" >
+                <constraints nullable="false"/>
+            </column>
+            <column name="author" type="VARCHAR(255)" >
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+
+        <!-- CREATE EXAMPLE DATA -->
+        <insert tableName="book">
+            <column name="id" value="c4ca4238a0b923820dcc509a6f75849b"/>
+            <column name="name" value="How Beautiful We Were"/>
+            <column name="author" value="Imbolo Mbue"/>
+        </insert>
+        <insert tableName="book">
+            <column name="id" value="c81e728d9d4c2f636f067f89cc14862c11"/>
+            <column name="name" value="How Beautiful We Were"/>
+            <column name="author" value="Imbolo Mbue"/>
+        </insert>
+        <insert tableName="book">
+            <column name="id" value="c81e728d9d4c2f636f067f89cc14862c"/>
+            <column name="name" value="Intimacies"/>
+            <column name="author" value="Katie Kitamura"/>
+        </insert>
+    </changeSet>
+</databaseChangeLog>
+```
+Let's now run your application and check database. `Book` table will be created with some sample data as above.
+
+### Spring JPA
+
+<b>Step 1</b>: Create Entity class
 ```java
-private static final Logger LOGGER = LoggerFactory.getLogger(<Your-Class>);
-
-// Info level
-AppLogService.info(LOGGER, "message");
-
-// Debug level
-AppLogService.debug(LOGGER, "message");
-
-// Warning level
-AppLogService.warn(LOGGER, "message");
-
-// Error level
-AppLogService.error(LOGGER, "error");
-```
-
-To configure logging to the file, add below configuration to `application-*.yml` file:
-```yaml
-vtskit:
-  logs:
-    log-folder: logs # Folder to save log file
-    app-logs:
-      error-log-file-name: ${spring.application.name}.error.log # File to save error log
-      console-log-file-name: ${spring.application.name}.log # File to save all log
-```
-
-### Kpi Logging
-#### Automation
-By default, All requests will be automatically saved kpi log.
-
-To limit by url patterns, add below configuration to `application-*.yml` file:
-```yaml
-vtskit:
-  logs:
-    kpi-logs:
-      allow-url-patterns: /**/getList,/**/update # Default is '/**' allow all requests
-```
-
-To disable automation mode, add below configuration:
-
-```yaml
-vtskit:
-  logs:
-    kpi-logs:
-      allow-url-patterns: ignore
-```
-
-#### Manual
-If you want to handle saving kpi log manually, follow the steps below
-
-<b>Step 1</b>: Define `KpiLogService` instance:
-```java
-private KpiLogService kpiLogService;
-
-@Autowired
-public void setKpiLogService(KpiLogService kpiLogService) {
-    this.kpiLogService = kpiLogService;
+@Data
+@NoArgsConstructor
+@Entity(name = "book")
+public class Book {
+    @Id
+    private String id;
+    private String name;
+    private String author;
 }
 ```
 
-<b>Step 2</b>: Set KPI Log information using `KpiLog.Builder`:
+<b>Step 2</b>: Create Repository interface
 ```java
-KpiLog.Builder builder = new KpiLog.Builder();
-builder.sessionId("SessionId");
-builder.ipPortParentNode("127.0.0.1");
-builder.ipPortCurrentNode("127.0.0.1");
-builder.requestContent("requestContent");
-builder.responseContent("responseContent");
-builder.startTime(new Date());
-builder.errorCode("00");
-builder.errorDescription("");
-builder.transactionStatus(TransactionStatus.SUCCESS);
-builder.actionName("actionName");
-builder.username("username");
-builder.account("account");
-builder.endTime(new Date());
+public interface BookRepository extends MariaRepository<Book, String> {}
 ```
 
-<b>Step 3</b>: Execute save KPI Log
+<b>Step 3</b>: Usage Repository for access data
+
 ```java
-kpiLogService.writeLog(LOGGER, builder.build());
+private BookRepository bookRepository;
+
+@Autowired
+public void setBookRepository(BookRepository bookRepository) {
+    this.bookRepository = bookRepository;
+}
 ```
 
-#### Output configuration
+<b>Saving data</b>
+```java
+Book book = new Book();
+book.setId("bookId");
+book.setName("bookName");
+book.setAuthor("bookAuthor");
+bookRepository.save(book);
+```
 
-By default, KPI log will be logged to the console log. In addition, it can be configured to write to file or database.
+<b>Getting by id</b>
+```java
+Book book = bookRepository.getById("bookId");
+```
 
-To configure logging to the file, add below configuration to `application-*.yml` file:
+<b>Select all</b>
+```java
+List<Book> bookList = bookRepository.findAll();
+```
+
+<b>Select paging</b>
+```java
+Page<Book> result = bookRepository.findAll(Pageable.ofSize(1).withPage(0));
+```
+
+<b>Delete by id</b>
+```java
+bookRepository.deleteById("bookId");
+```
+
+<b>Delete all</b>
+```java
+bookRepository.deleteAll();
+```
+
+### Native query
+If you want to execute the native query and mapping result to your DTO class, follow the steps below:
+
+<b>Step 1</b>: Create DTO class
+```java
+@Data
+@AllArgsConstructor
+@NoArgsConstructor
+public class BookDTO {
+    private String id;
+    private String name;
+    private String author;
+}
+```
+
+<b>Step 2</b>: Usage `CommonMariaRepository` for execute query
+
+```java
+private CommonMariaRepository commonRepository;
+
+@Autowired
+public void setCommonRepository(CommonMariaRepository commonRepository) {
+    this.commonRepository = commonRepository;
+}
+```
+
+<b>Select query</b>
+```java
+String query = "select * from book where author = :author";
+HashMap<String, Object> params = new HashMap<>();
+params.put("author", "Imbolo Mbue");
+List<BookDTO> books = commonRepository.executeSelectQuery(query, params, BookDTO.class);
+```
+
+<b>Select paging</b>
+```java
+int startPage = 0;
+int pageSize = 10;
+String query = "select * from book where author = :author";
+HashMap<String, Object> params = new HashMap<>();
+params.put("author", "Imbolo Mbue");
+Page<BookDTO> bookDTOPage = commonRepository.executeSelectPagingQuery(query, params, startPage, pageSize, BookDTO.class);
+```
+
+<b>Update query</b>
+```java
+String query = "update book set name = 'newName' where author = :author";
+HashMap<String, Object> params = new HashMap<>();
+params.put("author", "Imbolo Mbue");
+commonRepository.executeUpdateQuery(query, params);
+```
+
+<b>Count Select</b>
+```java
+String selectQuery = "select * from book where author = :author";
+HashMap<String, Object> params = new HashMap<>();
+params.put("author", "Imbolo Mbue");
+long total = commonRepository.executeCountSelectQuery(selectQuery, params);
+```
+### Advanced configuration
+<b>`HikariDataSource`</b> configuration
 ```yaml
 vtskit:
-  logs:
-    log-folder: logs # Folder to save log file
-    kpi-logs:
-      kpi-log-file-name: ${spring.application.name}.kpi.log # File to save kpi log
+  mariadb:
+    datasource:
+      hikari:
+        auto-commit: false
+        maximum-pool-size: 5
+        connection-timeout: 60000
+        ...
 ```
 
-Similarly, to save the kpi log to the database, add below configuration to `application-*.yml` file:
+<b>`JPA`</b> configuration:
 ```yaml
 vtskit:
-  logs:
-    kpi-logs:
-      datasource: # Configuration Maria DB for store kpi log
-        url: jdbc:mariadb://localhost:3307/test-database
-        username: root
-        password: root
+  mariadb:
+    jpa:
+      open-in-view: true
+      generate-ddl: false
+      show-sql: true
+      ...
 ```
-The system will automatically create a table named `KPI_LOG` and save the kpi log data there.
+
+<b>`Liquibase`</b> configuration:
+```yaml
+vtskit:
+  mariadb:
+    liquibase:
+      enabled: false
+      tag: tag
+      ...
+```
 
 Contribute
 -------
