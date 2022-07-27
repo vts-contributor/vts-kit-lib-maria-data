@@ -12,7 +12,7 @@ import java.util.function.Function;
 
 public class PageImpl<T> implements Page<T> {
     private final long total;
-    private final List<T> content = new ArrayList<T>();
+    private final List<T> content = new ArrayList<>();
     private final Pageable pageable;
 
     public PageImpl(List<T> content, Pageable pageable, long total) {
