@@ -4,9 +4,9 @@
  */
 package com.viettel.vtskit.maria.repository;
 
+import com.viettel.vtskit.maria.domain.PageImpl;
 import com.viettel.vtskit.maria.utils.CommonUtils;
 import org.springframework.data.domain.Page;
-import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Repository;
 import org.springframework.transaction.annotation.Transactional;
@@ -83,7 +83,7 @@ public class CommonMariaRepository {
                 nativeQuery.setParameter(param.getKey(), param.getValue());
             }
         }
-        nativeQuery.setFirstResult(startPage).setMaxResults(startPage + pageSize);
+        nativeQuery.setFirstResult(startPage * pageSize).setMaxResults(pageSize);
         long total = executeCountSelectQuery(query, params);
         List<T> resultList = CommonUtils.convertToEntity(nativeQuery.getResultList(), resultClass);
         Page<T> result = new PageImpl<>(resultList, PageRequest.of(startPage, pageSize), total);
